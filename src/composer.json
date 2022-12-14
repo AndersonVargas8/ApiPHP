@@ -1,0 +1,27 @@
+{
+    "name": "tecnovec/futbolcloud",
+    "description": "Api REST for Futbolcloud service",
+    "type": "project",
+    "require": {
+        "ext-pdo": "*",
+        "vlucas/phpdotenv": "5.5.x-dev",
+        "firebase/php-jwt": "dev-main"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/",
+            "Http\\": "http/",
+            "Routes\\": "routes/",
+            "Exception\\": "exception/",
+            "Config\\": "config/"
+        }
+    },
+    "license": "Proprietary",
+    "authors": [
+        {
+            "name": "AndersonVargas8",
+            "email": "anvargasa@unal.edu.co"
+        }
+    ],
+    "minimum-stability": "dev"
+}
