@@ -4,10 +4,9 @@ namespace Config;
 
 require_once 'headersConfig.php';
 
-use App\Models\Model;
+use App\Entities\DatabaseResult;
 use PDO;
 use PDOException;
-use stdClass;
 
 class Database
 {
@@ -51,30 +50,41 @@ class Database
      * @param string $query
      * @param string|null $className
      * @param mixed ...$params
-     * @return stdClass|Model|array|null
+     * @return DatabaseResult
      */
-    public static function execute(string $query, ?string $className = null, ...$params): stdClass|Model|array|null
+    public static function execute(string $query, ?string $className = null, ...$params): DatabaseResult
     {
+        $response = new DatabaseResult();
+
         $sentence = self::getConnection()->prepare($query);
         foreach ($params[0] as $index => $param) {
             $sentence->bindParam($index + 1, $params[0][$index]);
         }
-        if ($sentence->execute()) {
+
+        try {
+            $response->setStatus($sentence->execute());
             if (!is_null($className)) {
                 $result = $sentence->fetchAll(PDO::FETCH_CLASS, $className);
             } else {
                 $result = $sentence->fetchAll(PDO::FETCH_OBJ);
             }
-        } else {
-            throw new PDOException($sentence->errorInfo()[2], $sentence->errorCode());
+        } catch (PDOException $e) {
+            $response->setStatus(false);
+            $response->setError($e);
+            return $response;
         }
 
+        $response->setData($result);
+
         if (!sizeof($result))
-            return null;
+            $response->setData(null);
 
         if (sizeof($result) == 1)
-            return $result[0];
+            $response->setData($result[0]);
 
-        return $result;
+        $response->setLastInsertId(Database::getConnection()->lastInsertId());
+        $response->setRowsAffected($sentence->rowCount());
+
+        return $response;
     }
 }

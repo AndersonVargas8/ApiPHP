@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repository;
+namespace App\Repositories;
 
 use App\Models\Role;
 
@@ -39,13 +39,14 @@ class RoleRepository extends Repository
             ->where(['user_role.user_id' => $userId])
             ->result();
 
-        if (is_null($result))
+        if (is_null($result->getData()))
             return array();
 
-        if (!is_array($result))
-            $result = array($result);
+        if (!is_array($result->getData())) {
+            return array($result->getData());
+        }
 
-        return $result;
+        return $result->getData();
     }
 
 

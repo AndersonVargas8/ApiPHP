@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repository;
+namespace App\Repositories;
 
 interface RepositoryInterface
 {
@@ -9,5 +9,5 @@ interface RepositoryInterface
      *
      * @return Repository
      */
-    static function getRepository():Repository;
+    static function getRepository(): Repository;
 }

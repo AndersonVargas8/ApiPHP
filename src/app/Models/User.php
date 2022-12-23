@@ -78,5 +78,15 @@ class User extends Model
         $this->roles = $roles;
     }
 
+    /**
+     * Adds a new role to the user
+     *
+     * @param Role $role
+     * @return void
+     */
+    public function addRole(Role $role): void
+    {
+        $this->roles[] = $role;
+    }
 
 }

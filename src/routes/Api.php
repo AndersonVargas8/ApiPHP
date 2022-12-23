@@ -44,6 +44,7 @@ class Api
         * | Users |
         * +-------+*/
         $this->router->get('/user',[UserController::getController(), 'allUsers'],ROLES['ADMIN']);
+        $this->router->put('/user/{idUser}', [UserController::getController(), 'updateUser'], ROLES['ADMIN']);
     }
 
 }

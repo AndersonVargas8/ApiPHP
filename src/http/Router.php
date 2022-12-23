@@ -3,11 +3,13 @@
 namespace Http;
 
 use App\Services\AuthService;
+use ArgumentCountError;
 use Closure;
 use Exception;
 use Exception\AuthenticationException;
 use Exception\RouteNotFoundException;
 use stdClass;
+use TypeError;
 
 class Router
 {
@@ -187,7 +189,19 @@ class Router
                 }
 
                 $action = $this->methods[$method][$uriExpr]->{'action'};
-                $this->runAction($action, array_slice($params, 1));
+                try{
+                    $this->runAction($action, array_slice($params, 1));
+                } catch (ArgumentCountError $e){
+                    if($_ENV['APP_DEBUG'])
+                        Response::json($e->getMessage(), Response::HTTP_BAD_REQUEST);
+                    else
+                        Response::json("Too few arguments", Response::HTTP_BAD_REQUEST);
+                } catch (TypeError $e){
+                    if($_ENV['APP_DEBUG'])
+                        Response::json($e->getMessage(), Response::HTTP_BAD_REQUEST);
+                    else
+                        Response::json("Incorrect argument type", Response::HTTP_BAD_REQUEST);
+                }
                 return;
             }
         }

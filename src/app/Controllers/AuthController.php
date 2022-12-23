@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Services\AuthService;
 use App\Services\UserService;
 use Exception\DuplicatedValueException;
+use Exception\IndexNotFoundException;
 use Http\Response;
 use stdClass;
 
@@ -40,19 +41,22 @@ class AuthController extends Controller
      */
     public function login(stdClass $request): void
     {
-        if (is_null($request->user) || is_null($request->password)) {
-            Response::json(["Message" => "El usuario y la contraseña no deben estar vacíos"], Response::HTTP_BAD_REQUEST);
+        if (!isset($request->user) || !isset($request->password)) {
+            Response::json(["message" => "El usuario y la contraseña no deben ser nulos"], Response::HTTP_BAD_REQUEST);
             return;
         }
-
-        $check = $this->userService->checkCredentials($request->user, $request->password);
+        $user = strtolower(trim($request->user));
+        $check = $this->userService->checkCredentials($user, $request->password);
 
         if (!$check) {
-            Response::json(["Message" => "Usuario o contraseña incorrectos"], Response::HTTP_BAD_REQUEST);
+            Response::json(["message" => "Usuario o contraseña incorrectos"], Response::HTTP_BAD_REQUEST);
             return;
         }
 
-        $user = $this->userService->getUserByUsername($request->user);
+        try {
+            $user = $this->userService->getUserByUsername($user);
+        } catch (IndexNotFoundException) {
+        }
 
         $jwt = AuthService::generateJWT($user);
         Response::json(["token" => $jwt]);
@@ -64,16 +68,32 @@ class AuthController extends Controller
      */
     public function signup(stdClass $request): void
     {
+        if (!isset($request->user) || !isset($request->password) || !isset($request->confirm_password)) {
+            Response::json(["message" => "El usuario y la contraseña no deben ser nulos"], Response::HTTP_BAD_REQUEST);
+            return;
+        }
+
+        if ($request->user == "" || $request->password == "") {
+            Response::json(["message" => "El usuario y la contraseña no deben estar vacíos"]);
+            return;
+        }
+
+        if ($request->password != $request->confirm_password) {
+            Response::json(["message" => "Las contraseñas no coinciden"], Response::HTTP_BAD_REQUEST);
+            return;
+        }
+
         $user = new User();
+        $request->user = strtolower(trim($request->user));
         $user->fill($request);
 
         try {
             $userCreated = $this->userService->createUser($user);
         } catch (DuplicatedValueException $e) {
             if ($_ENV['APP_DEBUG'])
-                Response::json(['Message' => $e->getMessage()], Response::HTTP_BAD_REQUEST);
+                Response::json(['message' => $e->getMessage()], Response::HTTP_BAD_REQUEST);
             else
-                Response::json(['Message' => "El usuario ingresado ya existe"], Response::HTTP_BAD_REQUEST);
+                Response::json(['message' => "El nombre de usuario ingresado ya existe"], Response::HTTP_BAD_REQUEST);
 
             return;
         }

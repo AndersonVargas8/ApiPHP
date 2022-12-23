@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Repository;
+namespace App\Repositories;
 
+use App\Models\Role;
 use App\Models\User;
 
 class UserRepository extends Repository
@@ -34,7 +35,7 @@ class UserRepository extends Repository
      */
     public function findByUser(string $user): null|User
     {
-        $user = $this->findAllBy(['user' => $user])->result();
+        $user = $this->findAllBy(['user' => $user])->result()->getData();
 
         if (!$user instanceof User) {
             return null;
@@ -48,7 +49,7 @@ class UserRepository extends Repository
      */
     public function findAllWithoutPassword(): ?array
     {
-        $result = $this->find('id', 'user')->result();
+        $result = $this->find('id', 'user')->result()->getData();
 
         if (is_null($result))
             return null;
@@ -59,15 +60,29 @@ class UserRepository extends Repository
         return $result;
     }
 
-    /*+---------------------------------+
-    * | EJEMPLO DE USO DEL CUSTOM QUERY |
-    * +---------------------------------+*/
-    public function count(int $id1, int $id2): int
+    /**
+     * Remove all user's roles
+     *
+     * @param int $idUser
+     * @return int Number of affected rows
+     */
+    public function deleteUserRoles(int $idUser): int
     {
-        $query = "SELECT COUNT(id) AS count FROM " . $this->table . " WHERE id > ? AND id < ? AND user LIKE ?";
-        $u = "%jiba%";
-        $result = $this->customQuery($query, $id1, $id2, $u)->count;
-        return 0;
+        $query = "DELETE FROM user_role WHERE user_id = ?";
+        $result = $this->customQuery($query, $idUser);
+        return $result->getRowsAffected();
+    }
+
+    /**
+     * @param int $userId
+     * @param Role $role
+     * @return bool
+     */
+    public function saveUserRole(int $userId, Role $role): bool
+    {
+        $query = "INSERT INTO user_role (user_id, role_id) VALUES (?,?)";
+        $result = $this->customQuery($query, $userId, $role->getId());
+        return $result->getStatus();
     }
 
 }

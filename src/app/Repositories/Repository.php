@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Repository;
+namespace App\Repositories;
 
+use App\Entities\DatabaseResult;
 use App\Models\Model;
 use Config\Database;
 use Exception\DuplicatedValueException;
-use PDOException;
-use stdClass;
+use Exception\IndexNotFoundException;
 
 abstract class Repository implements RepositoryInterface
 {
@@ -58,7 +58,7 @@ abstract class Repository implements RepositoryInterface
     public function findAll(): array
     {
         $this->query = 'SELECT * FROM ' . $this->table;
-        return $this->result();
+        return $this->result()->getData();
     }
 
     /**
@@ -69,7 +69,7 @@ abstract class Repository implements RepositoryInterface
      */
     public function findById(int $id): ?Model
     {
-        return $this->findAllBy(['id' => $id])->result();
+        return $this->findAllBy(['id' => $id])->result()->getData();
     }
 
     /**
@@ -198,28 +198,70 @@ abstract class Repository implements RepositoryInterface
         $this->query .= '(' . implode(', ', $columns) . ') ';
         $this->query .= ' VALUES (' . implode(', ', $values) . ')';
 
-        try {
-            $this->result();
-        } catch (PDOException $e) {
+        $result = $this->result();
+        if (!is_null($result->getError())) {
+            $e = $result->getError();
             if ($e->getCode() == 23000) {
                 throw new DuplicatedValueException($e->getMessage());
             }
         }
 
-        $lastId = Database::getConnection()->lastInsertId();
+        $lastId = $result->getLastInsertId();
 
         return $this->findById($lastId);
     }
 
     /**
-     * Execute a custom query. It can contain any number of params.
+     * Execute an update statement with the properties of the given model
+     *
+     * @throws DuplicatedValueException
+     * @throws IndexNotFoundException
+     */
+    public function update(Model $model): Model
+    {
+        $values = $model->__dataAttributes();
+        $id = $values['id'];
+
+        /*+--------------------------------------------------------------------+
+        * | Agrega comillas simples a cada uno de los valores de los atributos |
+        * +--------------------------------------------------------------------+*/
+        $values = array_map(fn($value) => "'" . $value . "'" ?? "null", $values);
+        $columns = array_keys($values);
+
+        $this->query = "UPDATE " . $this->table;
+
+        $sets = array();
+        foreach ($columns as $column) {
+            $sets[] = $column . " = " . $values[$column];
+        }
+
+        $this->query .= " SET " . implode(', ', $sets);
+        $this->query .= " WHERE id = " . $id;
+        
+        $result = $this->result();
+        if (!is_null($result->getError())) {
+            $e = $result->getError();
+            if ($e->getCode() == 23000) {
+                throw new DuplicatedValueException($e->getMessage());
+            }
+        }
+
+        if ($result->getRowsAffected() == 0) {
+            throw new IndexNotFoundException();
+        }
+
+        return $model;
+    }
+
+    /**
+     * Execute a custom query. It can contain any number of params. The result is without model response.
      *
      * @param string $query - Parameters must be represented by '?' symbol.
      * e.g: 'SELECT * FROM users WHERE id = ? AND email = ?'
      * @param ...$params - Variables in order to assoc with each parameter.
-     * @return stdClass|null
+     * @return DatabaseResult If error return false
      */
-    protected function customQuery(string $query, ...$params): ?stdClass
+    protected function customQuery(string $query, ...$params): DatabaseResult
     {
         $this->query = $query;
         $this->params = $params;
@@ -232,9 +274,9 @@ abstract class Repository implements RepositoryInterface
      *
      * @param bool $modelResponse - true by default
      * @param bool $hasParams - false by default
-     * @return Model|stdClass|array|null
+     * @return DatabaseResult If error return false. If all was well without result return null.
      */
-    protected function result(bool $modelResponse = true, bool $hasParams = false): null|Model|stdClass|array
+    protected function result(bool $modelResponse = true, bool $hasParams = false): DatabaseResult
     {
         if (!$hasParams)
             $this->params = array();
@@ -242,6 +284,7 @@ abstract class Repository implements RepositoryInterface
             $result = Database::execute($this->query, $this->model, $this->params);
         else
             $result = Database::execute($this->query, null, $this->params);
-        return ($result) ?: null;
+
+        return $result;
     }
 }

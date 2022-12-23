@@ -2,10 +2,12 @@
 
 namespace App\Services;
 
+use App\Models\Role;
 use App\Models\User;
-use App\Repository\RoleRepository;
-use App\Repository\UserRepository;
+use App\Repositories\RoleRepository;
+use App\Repositories\UserRepository;
 use Exception\DuplicatedValueException;
+use Exception\IndexNotFoundException;
 
 class UserService extends Service
 {
@@ -51,6 +53,34 @@ class UserService extends Service
     }
 
     /**
+     * @throws DuplicatedValueException Username already exists
+     * @throws IndexNotFoundException User id does not exist
+     */
+    public function updateUser(User $user): User
+    {
+        $user->setPassword(password_hash($user->getPassword(), PASSWORD_DEFAULT));
+
+        /*+--------------------+
+        * | Update user record |
+        * +--------------------+*/
+        $model = $this->userRepository->update($user);
+
+        /*+-------------------+
+        * | Update user roles |
+        * +-------------------+*/
+        $this->userRepository->deleteUserRoles($user->getId());
+
+        foreach ($user->getRoles() as $role) {
+            $this->userRepository->saveUserRole($user->getId(), $role);
+        }
+
+        $user->fill($model->__toArray());
+        $user->setRoles($this->roleRepository->findByUser($user->getId()));
+        $user->setPassword("<<secret-value>>");
+        return $user;
+    }
+
+    /**
      * Verify if the given credentials are correct.
      *
      * @param string $user
@@ -76,8 +106,6 @@ class UserService extends Service
 
         foreach ($users as $user) {
             $roles = $this->roleRepository->findByUser($user->getId());
-            if (is_null($roles))
-                continue;
             $user->setRoles($roles);
         }
 
@@ -89,13 +117,54 @@ class UserService extends Service
      *
      * @param string $username
      * @return User|null
+     * @throws IndexNotFoundException
      */
     public function getUserByUsername(string $username): ?User
     {
         $user = $this->userRepository->findByUser($username);
+
+        if (is_null($user)) {
+            throw new IndexNotFoundException();
+        }
         $roles = $this->roleRepository->findByUser($user->getId());
         $user->setRoles($roles);
         return $user;
+    }
+
+    /**
+     * @throws IndexNotFoundException
+     */
+    public function getUserById(int $id): ?User
+    {
+        $model = $this->userRepository->findById($id);
+        if (is_null($model))
+            throw new IndexNotFoundException();
+
+        $user = new User();
+        $user->fill($model->__toArray());
+
+        $roles = $this->roleRepository->findByUser($user->getId());
+        $user->setRoles($roles);
+
+        return $user;
+    }
+
+    /**
+     * @param int $id
+     * @return Role|null
+     * @throws IndexNotFoundException
+     */
+    public function getRoleById(int $id): ?Role
+    {
+        $result = $this->roleRepository->findById($id);
+
+        if (is_null($result))
+            throw new IndexNotFoundException();
+
+        $role = new Role();
+        $role->fill($result->__toArray());
+
+        return $role;
     }
 
 }
