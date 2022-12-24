@@ -161,6 +161,24 @@ abstract class Repository implements RepositoryInterface
     }
 
     /**
+     * Adds an **Order by** statement to the query with the given column
+     *
+     * @param string $column
+     * @param bool $ascendant True by default. It sets the order ascendant. False to descendant.
+     * @return Repository
+     */
+    protected function orderBy(string $column, bool $ascendant = true): Repository
+    {
+        $this->query .= " ORDER BY " . $column;
+        if ($ascendant)
+            $this->query .= " ASC";
+        else
+            $this->query .= " DESC";
+
+        return $this;
+    }
+
+    /**
      * Adds Joins sentence to the query.
      * The sentence will be created as: JOIN $table1 ON $table1.columnTable1 = $table2.columnTable2
      *
@@ -237,7 +255,7 @@ abstract class Repository implements RepositoryInterface
 
         $this->query .= " SET " . implode(', ', $sets);
         $this->query .= " WHERE id = " . $id;
-        
+
         $result = $this->result();
         if (!is_null($result->getError())) {
             $e = $result->getError();
@@ -251,6 +269,18 @@ abstract class Repository implements RepositoryInterface
         }
 
         return $model;
+    }
+
+    /**
+     * Delete a record assoc with the Model's id
+     *
+     * @param Model $model
+     * @return DatabaseResult
+     */
+    public function delete(Model $model): DatabaseResult
+    {
+        $this->query = "DELETE FROM " . $this->table . " WHERE id = " . $model->getId();
+        return $this->result();
     }
 
     /**

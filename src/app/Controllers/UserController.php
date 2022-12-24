@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Models\User;
 use App\Services\UserService;
+use Exception;
 use Exception\DuplicatedValueException;
 use Exception\IndexNotFoundException;
 use Http\Response;
@@ -91,6 +92,64 @@ class UserController extends Controller
             return;
         } catch (IndexNotFoundException) {
         }
+
+        Response::json($user);
+    }
+
+    /**
+     * @param int $id
+     * @return void
+     */
+    public function deleteUser(int $id): void
+    {
+        try {
+            $numOfDeletes = $this->userService->deleteUserById($id);
+        } catch (IndexNotFoundException) {
+            Response::json(['message' => 'El id ingresado no corresponde a ningún usuario'], Response::HTTP_NOT_FOUND);
+            return;
+        } catch (Exception $e) {
+            if ($_ENV['APP_DEBUG'])
+                Response::json($e->getMessage(), $e->getCode());
+            else
+                Response::json(['message' => 'ERROR: Ocurrió un problema eliminando el usuario'], Response::HTTP_INTERNAL_SERVER_ERROR);
+            return;
+        }
+
+        Response::json(['message' => 'Se han eliminado (' . $numOfDeletes . ') usuarios']);
+    }
+
+    /**
+     * @param int $id
+     * @return void
+     */
+    public function userById(int $id): void
+    {
+        try {
+            $user = $this->userService->getUserById($id);
+        } catch (IndexNotFoundException) {
+            Response::json(['message' => 'No se encontró un usuario con el id ingresado'], Response::HTTP_NOT_FOUND);
+            return;
+        }
+
+        $user->setPassword('<<secret-value>>');
+
+        Response::json($user);
+    }
+
+    /**
+     * @param string $username
+     * @return void
+     */
+    public function userByUsername(string $username): void
+    {
+        try {
+            $user = $this->userService->getUserByUsername($username);
+        } catch (IndexNotFoundException) {
+            Response::json(['message' => 'No se encontró un usuario con el id ingresado'], Response::HTTP_NOT_FOUND);
+            return;
+        }
+
+        $user->setPassword('<<secret-value>>');
 
         Response::json($user);
     }

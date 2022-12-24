@@ -6,6 +6,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Repositories\RoleRepository;
 use App\Repositories\UserRepository;
+use Exception;
 use Exception\DuplicatedValueException;
 use Exception\IndexNotFoundException;
 
@@ -165,6 +166,25 @@ class UserService extends Service
         $role->fill($result->__toArray());
 
         return $role;
+    }
+
+    /**
+     * @param int $id
+     * @return int
+     * @throws IndexNotFoundException
+     * @throws Exception
+     */
+    public function deleteUserById(int $id): int
+    {
+        $user = $this->userRepository->findById($id);
+        if (is_null($user))
+            throw new IndexNotFoundException();
+
+        $result = $this->userRepository->delete($user);
+        if ($result->getStatus())
+            return $result->getRowsAffected();
+
+        throw $result->getError();
     }
 
 }

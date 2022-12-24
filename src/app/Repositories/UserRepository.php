@@ -49,7 +49,11 @@ class UserRepository extends Repository
      */
     public function findAllWithoutPassword(): ?array
     {
-        $result = $this->find('id', 'user')->result()->getData();
+        $result = $this
+            ->find('id', 'user')
+            ->orderBy('id')
+            ->result()
+            ->getData();
 
         if (is_null($result))
             return null;

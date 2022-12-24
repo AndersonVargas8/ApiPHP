@@ -2,7 +2,6 @@
 
 namespace Routes;
 
-use App\Controllers\JugadoresController;
 use App\Controllers\AuthController;
 use App\Controllers\UserController;
 use Exception;
@@ -43,8 +42,11 @@ class Api
         /*+-------+
         * | Users |
         * +-------+*/
-        $this->router->get('/user',[UserController::getController(), 'allUsers'],ROLES['ADMIN']);
+        $this->router->get('/user', [UserController::getController(), 'allUsers'], ROLES['ADMIN']);
+        $this->router->get('user/{idUser}', [UserController::getController(), 'userById'], ROLES['ADMIN']);
+        $this->router->get('/user/username/{username}', [UserController::getController(), 'userByUsername'], ROLES['ADMIN']);
         $this->router->put('/user/{idUser}', [UserController::getController(), 'updateUser'], ROLES['ADMIN']);
+        $this->router->delete('/user/{iduser}', [UserController::getController(), 'deleteUser'], ROLES['ADMIN']);
     }
 
 }
