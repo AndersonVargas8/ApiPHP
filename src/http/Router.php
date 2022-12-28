@@ -5,10 +5,10 @@ namespace Http;
 use App\Services\AuthService;
 use ArgumentCountError;
 use Closure;
+use Config\SystemConfig;
 use Exception;
 use Exception\AuthenticationException;
 use Exception\RouteNotFoundException;
-use stdClass;
 use TypeError;
 
 class Router
@@ -76,7 +76,7 @@ class Router
         * | Se define la uri como una expresión regular |
         * +---------------------------------------------+*/
         $expr = '#^' . $uri . '/?$#';
-        $this->methods[$method][$expr] = (object) $temp;
+        $this->methods[$method][$expr] = (object)$temp;
     }
 
     /**
@@ -186,18 +186,21 @@ class Router
 
                     if (!$this->verifyRoles($roles))
                         throw new AuthenticationException('Acceso restringido al recurso', Response::HTTP_FORBIDDEN);
+                } else{
+                    if (!$this->verifyApp())
+                        throw new AuthenticationException('Acceso restringido al recurso');
                 }
 
                 $action = $this->methods[$method][$uriExpr]->{'action'};
-                try{
+                try {
                     $this->runAction($action, array_slice($params, 1));
-                } catch (ArgumentCountError $e){
-                    if($_ENV['APP_DEBUG'])
+                } catch (ArgumentCountError $e) {
+                    if ($_ENV['APP_DEBUG'])
                         Response::json($e->getMessage(), Response::HTTP_BAD_REQUEST);
                     else
                         Response::json("Too few arguments", Response::HTTP_BAD_REQUEST);
-                } catch (TypeError $e){
-                    if($_ENV['APP_DEBUG'])
+                } catch (TypeError $e) {
+                    if ($_ENV['APP_DEBUG'])
                         Response::json($e->getMessage(), Response::HTTP_BAD_REQUEST);
                     else
                         Response::json("Incorrect argument type", Response::HTTP_BAD_REQUEST);
@@ -243,10 +246,13 @@ class Router
      */
     private function verifyAuth(): bool
     {
-        if (!isset($_SERVER['HTTP_AUTHORIZATION']))
-            return false;
-
-        $token = str_replace('Bearer ', '', getenv('HTTP_AUTHORIZATION'));
+        if (!isset($_SERVER['HTTP_AUTHORIZATION'])) {
+            if (!isset($_COOKIE['AuthToken']))
+                return false;
+            else
+                $token = $_COOKIE['AuthToken'];
+        } else
+            $token = str_replace('Bearer ', '', getenv('HTTP_AUTHORIZATION'));
 
         return AuthService::validateToken($token);
 
@@ -274,5 +280,26 @@ class Router
         }
 
         return false;
+    }
+
+    /**
+     * Validate if API-KEY exists and it is an authorized app
+     *
+     * @return bool
+     */
+    private function verifyApp(): bool
+    {
+        if (!isset($_SERVER['HTTP_APP_KEY'])) {
+            return false;
+        }
+
+        $app = SystemConfig::decodeAppName($_SERVER['HTTP_APP_KEY']);
+
+        if (!in_array($app, APPS)) {
+            return false;
+        }
+
+        AuthService::setAppName($app);
+        return true;
     }
 }

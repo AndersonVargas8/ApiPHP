@@ -3,6 +3,7 @@
 namespace Http;
 
 use App\Models\Model;
+use App\Services\AuthService;
 
 class Response
 {
@@ -81,26 +82,36 @@ class Response
      * @param int $status - 200 by default
      * @return void
      */
-    public static function json(mixed $object, int $status = 200):void{
+    public static function json(mixed $object, int $status = 200): void
+    {
         http_response_code($status);
 
         /*+----------------------------------------------------------------------------------------------+
         * | Verifica si el objeto es una subclase de Model y de ser así retorna sus atributos como array |
         * +----------------------------------------------------------------------------------------------+*/
-        $isModel = function($value): mixed{
-            if (is_subclass_of($value, Model::class)){
+        $isModel = function ($value): mixed {
+            if (is_subclass_of($value, Model::class)) {
                 return $value->__toArray();
             }
             return $value;
         };
 
-        if (!is_array($object)){
+        if (!is_array($object)) {
             $object = $isModel($object);
-        }else{
+        } else {
             $object = array_map($isModel, $object);
         }
 
+        /*+-----------------------+
+        * | Regenerate jwt cookie |
+        * +-----------------------+*/
+        if (AuthService::isLoggedUser()) {
+            $jwt = AuthService::generateJWT();
+            setcookie('AuthToken', $jwt, time() + (60) * SESSION_MINUTES, "/", null, null, true);
 
+            $userID = explode('.', $jwt)[1];
+            setcookie('SessionID', $userID, time() + (60) * SESSION_MINUTES, "/");
+        }
         print(json_encode($object));
     }
 }

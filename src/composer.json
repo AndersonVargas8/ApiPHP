@@ -5,7 +5,8 @@
     "require": {
         "ext-pdo": "*",
         "vlucas/phpdotenv": "5.5.x-dev",
-        "firebase/php-jwt": "dev-main"
+        "firebase/php-jwt": "dev-main",
+      "ext-openssl": "*"
     },
     "autoload": {
         "psr-4": {

@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\User;
 use App\Services\AuthService;
 use App\Services\UserService;
+use Exception;
 use Exception\DuplicatedValueException;
 use Exception\IndexNotFoundException;
 use Http\Response;
@@ -58,8 +59,8 @@ class AuthController extends Controller
         } catch (IndexNotFoundException) {
         }
 
-        $jwt = AuthService::generateJWT($user);
-        Response::json(["token" => $jwt]);
+        AuthService::openSession($user);
+        Response::json(["message" => 'Logged in successfully'], (int)null, false);
     }
 
     /**
@@ -99,5 +100,41 @@ class AuthController extends Controller
         }
 
         Response::json($userCreated, Response::HTTP_CREATED);
+    }
+
+    /**
+     * @return void
+     */
+    public function logout(): void
+    {
+        AuthService::closeSession();
+
+        setcookie('AuthToken', null, time() - 1, "/", null, null, true);
+        setcookie('SessionID', null, time() - 1, "/", null, null, true);
+
+        Response::json(['message' => 'Logged out successfully']);
+    }
+
+    /**
+     * Verify if the current request has a valid session
+     *
+     * @return void
+     */
+    public function verifySession(): void
+    {
+        if (!isset($_SERVER['HTTP_AUTHORIZATION'])) {
+            if (!isset($_COOKIE['AuthToken'])) {
+                Response::json(false);
+                return;
+            } else
+                $token = $_COOKIE['AuthToken'];
+        } else
+            $token = str_replace('Bearer ', '', getenv('HTTP_AUTHORIZATION'));
+
+        try {
+            Response::json(AuthService::validateToken($token));
+        } catch (Exception) {
+            Response::json(false);
+        }
     }
 }

@@ -16,7 +16,14 @@ class AuthService
      *
      * @var int|null
      */
-    private static ?int $currentUser = null;
+    private static ?int $currentIdUser = null;
+
+    /**
+     * Current logged user
+     *
+     * @var string|null
+     */
+    private static ?string $currentUser = null;
 
     /**
      * Current logged user roles
@@ -27,14 +34,15 @@ class AuthService
     private static ?array $currentUserRoles = null;
 
     /**
-     * Generate a JTW with the user id, username and roles in the payload. The token expires in 20 minutes
+     * Set the current credentials
      *
      * @param User $user
-     * @return string
+     * @return void
      */
-    public static function generateJWT(User $user): string
+    public static function openSession(User $user): void
     {
-        self::$currentUser = $user->getId();
+        self::$currentIdUser = $user->getId();
+        self::$currentUser = $user->getUser();
 
         $roles = $user->getRoles();
         self::$currentUserRoles = array();
@@ -42,15 +50,56 @@ class AuthService
         foreach ($roles as $role) {
             self::$currentUserRoles[] = $role->getDescription();
         }
+    }
+
+    /**
+     * Remove the current credentials
+     *
+     * @return void
+     */
+    public static function closeSession(): void
+    {
+        self::$currentAppName = null;
+        self::$currentUserRoles = null;
+        self::$currentUser = null;
+    }
+
+    /**
+     * Current app's name
+     *
+     * @var string|null
+     */
+    private static ?string $currentAppName = null;
+
+    /**
+     * Generate a JTW with the user id, username and roles in the payload.
+     *
+     * @param User|null $user If null the token is created with current credentials
+     * @return string
+     */
+    public static function generateJWT(?User $user = null): string
+    {
+        if (!is_null($user)) {
+            self::$currentIdUser = $user->getId();
+            self::$currentUser = $user->getUser();
+
+            $roles = $user->getRoles();
+            self::$currentUserRoles = array();
+
+            foreach ($roles as $role) {
+                self::$currentUserRoles[] = $role->getDescription();
+            }
+        }
 
         $issuedAt = time();
-        $expirationTime = $issuedAt + (60) * 20; //20 minutes
+        $expirationTime = $issuedAt + (60) * SESSION_MINUTES;
         $payload = array(
             'iat' => $issuedAt,
             'exp' => $expirationTime,
             'data' => array(
-                'userId' => $user->getId(),
-                'username' => $user->getUser(),
+                'app' => self::$currentAppName,
+                'userId' => self::$currentIdUser,
+                'username' => self::$currentUser,
                 'roles' => self::$currentUserRoles
             )
         );
@@ -81,10 +130,20 @@ class AuthService
             return false;
         }
 
-        self::$currentUser = $decoded->data->userId;
+        self::$currentAppName = $decoded->data->app;
+        self::$currentIdUser = $decoded->data->userId;
+        self::$currentUser = $decoded->data->username;
         self::$currentUserRoles = $decoded->data->roles;
 
         return true;
+    }
+
+    /**
+     * @return bool
+     */
+    public static function isLoggedUser(): bool
+    {
+        return !is_null(self::$currentUser);
     }
 
     /**
@@ -93,6 +152,16 @@ class AuthService
      * @return int|null
      */
     public static function getLoggedUser(): ?int
+    {
+        return self::$currentIdUser;
+    }
+
+    /**
+     * Get the current user's username
+     *
+     * @return string|null
+     */
+    public static function getCurrentUser(): ?string
     {
         return self::$currentUser;
     }
@@ -107,4 +176,18 @@ class AuthService
         return self::$currentUserRoles;
     }
 
+    /**
+     * Get the current app's name
+     *
+     * @return string|null
+     */
+    public static function getAppName(): ?string
+    {
+        return self::$currentAppName;
+    }
+
+    public static function setAppName(string $appName): void
+    {
+        self::$currentAppName = $appName;
+    }
 }

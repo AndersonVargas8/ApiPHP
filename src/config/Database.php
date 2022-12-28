@@ -5,6 +5,7 @@ namespace Config;
 require_once 'headersConfig.php';
 
 use App\Entities\DatabaseResult;
+use App\Services\AuthService;
 use PDO;
 use PDOException;
 
@@ -24,16 +25,30 @@ class Database
      */
     public static function getConnection()
     {
+        $APP = AuthService::getAppName();
+        if (!isset($_ENV[$APP . '_DB_HOST']) ||
+            !isset($_ENV[$APP . '_DB_PORT']) ||
+            !isset($_ENV[$APP . '_DB_NAME']) ||
+            !isset($_ENV[$APP . '_DB_USER']) ||
+            !isset($_ENV[$APP . '_DB_PASSWORD'])
+        ) {
+            http_response_code(500);
+            die('Could not connect to the server');
+        }
+
         try {
             if (is_null(self::$connection)) {
                 self::$connection = new PDO(
-                    "mysql:host=" . $_ENV['DB_HOST'] . ";port=" . $_ENV['DB_PORT'] . ";dbname=" . $_ENV['DB_NAME'],
-                    $_ENV['DB_USER'],
-                    $_ENV['DB_PASSWORD'],
+                    "mysql:host=" . $_ENV[$APP . '_DB_HOST'] .
+                    ";port=" . $_ENV[$APP . '_DB_PORT'] .
+                    ";dbname=" . $_ENV[$APP . '_DB_NAME'],
+                    $_ENV[$APP . '_DB_USER'],
+                    $_ENV[$APP . '_DB_PASSWORD'],
                     array(PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8")
                 );
             }
         } catch (PDOException $e) {
+            http_response_code(500);
             if ($_ENV['APP_DEBUG']) {
                 die("Could not connect to the database " . $_ENV['DB_NAME'] . ": " . $e->getMessage());
             }
