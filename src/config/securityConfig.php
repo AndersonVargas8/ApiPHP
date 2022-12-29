@@ -22,7 +22,8 @@ const AUTHORIZE_REQUESTS = ['/login', '/signup', '/logo', '/verifySession'];
 * | Authorized APPs |
 * +-----------------+*/
 const APPS = array(
-    'ZIZU_FC'
+    'ZIZU_FC',
+    'BARCA'
 );
 
 /*+-----------------------+

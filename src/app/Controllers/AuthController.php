@@ -60,7 +60,8 @@ class AuthController extends Controller
         }
 
         AuthService::openSession($user);
-        Response::json(["message" => 'Logged in successfully'], (int)null, false);
+        $jwt = AuthService::generateJWT();
+        Response::json(["message" => 'Logged in successfully']);
     }
 
     /**

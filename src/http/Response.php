@@ -107,11 +107,18 @@ class Response
         * +-----------------------+*/
         if (AuthService::isLoggedUser()) {
             $jwt = AuthService::generateJWT();
-            setcookie('AuthToken', $jwt, time() + (60) * SESSION_MINUTES, "/", null, null, true);
+            /*setcookie('AuthToken', $jwt, time() + (60) * SESSION_MINUTES, "/", null, null, true);
 
             $userID = explode('.', $jwt)[1];
-            setcookie('SessionID', $userID, time() + (60) * SESSION_MINUTES, "/");
+            setcookie('SessionID', $userID, time() + (60) * SESSION_MINUTES, "/");*/
+
+            $newObject = array(
+                'data' => $object,
+                'token' => $jwt
+            );
+            $object = $newObject;
         }
+
         print(json_encode($object));
     }
 }

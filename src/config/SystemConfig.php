@@ -28,7 +28,7 @@ class SystemConfig
     {
         $options = 0;
         return openssl_encrypt($appName, self::$ciphering,
-            "holamundo", $options, self::$encryption_iv);
+            ENCRYPTION_KEY, $options, self::$encryption_iv);
     }
 
     /**
