@@ -63,7 +63,6 @@ class SystemConfig
         +-----------------------------------+*/
         $data = explode(',', $base64String);
 
-
         $data[0] = explode(';', $data[0])[0];
         $ext = str_replace('data:image/', ".", $data[0]);
 
