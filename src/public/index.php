@@ -24,7 +24,6 @@ include('../config/securityConfig.php');
 $dotenv = Dotenv::createImmutable('../../');
 $dotenv->load();
 
-
 /*+-----------------------------------------------------------------------------+
 * | Create a new Router with the entry point defined on the environment variables |
 * +-----------------------------------------------------------------------------+*/

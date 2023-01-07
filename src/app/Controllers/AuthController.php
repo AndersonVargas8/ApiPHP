@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\User;
 use App\Services\AuthService;
 use App\Services\UserService;
+use Config\SystemConfig;
 use Exception;
 use Exception\DuplicatedValueException;
 use Exception\IndexNotFoundException;
@@ -85,6 +86,13 @@ class AuthController extends Controller
             return;
         }
 
+        try {
+            $request->photo = SystemConfig::saveBase64Image($request->photo);
+        } catch (Exception $e){
+            Response::json(['message' => $e->getMessage()], Response::HTTP_BAD_REQUEST);
+            return;
+        }
+
         $user = new User();
         $request->user = strtolower(trim($request->user));
         $user->fill($request);
@@ -92,6 +100,8 @@ class AuthController extends Controller
         try {
             $userCreated = $this->userService->createUser($user);
         } catch (DuplicatedValueException $e) {
+            SystemConfig::deleteFile($request->photo);
+
             if ($_ENV['APP_DEBUG'])
                 Response::json(['message' => $e->getMessage()], Response::HTTP_BAD_REQUEST);
             else

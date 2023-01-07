@@ -3,7 +3,9 @@
 namespace App\Controllers;
 
 use App\Models\User;
+use App\Services\AuthService;
 use App\Services\UserService;
+use Config\SystemConfig;
 use Exception;
 use Exception\DuplicatedValueException;
 use Exception\IndexNotFoundException;
@@ -67,6 +69,13 @@ class UserController extends Controller
         } catch (IndexNotFoundException) {
             Response::json(['message' => "No existe un usuario con el id ingresado"], Response::HTTP_NOT_FOUND);
             return;
+        }
+
+        try {
+            $path = './www/' . AuthService::getAppName() . '/images/users';
+            $userRequest->photo = SystemConfig::saveBase64Image($userRequest->photo, $path);
+        } catch (Exception $e){
+            Response::json(['message' => $e->getMessage()], Response::HTTP_BAD_REQUEST);
         }
 
         $user = new User();

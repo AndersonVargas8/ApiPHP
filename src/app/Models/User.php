@@ -7,6 +7,7 @@ class User extends Model
     protected ?int $id = null;
     protected ?string $user = null;
     protected ?string $password = null;
+    protected ?string $photo = null;
     protected array $roles = array();
 
     function transientAttributes(): array
@@ -60,6 +61,22 @@ class User extends Model
     public function setPassword(?string $password): void
     {
         $this->password = $password;
+    }
+
+    /**
+     * @return string|null
+     */
+    public function getPhoto(): ?string
+    {
+        return $this->photo;
+    }
+
+    /**
+     * @param string|null $photo
+     */
+    public function setPhoto(?string $photo): void
+    {
+        $this->photo = $photo;
     }
 
     /**

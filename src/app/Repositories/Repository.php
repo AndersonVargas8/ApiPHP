@@ -5,6 +5,7 @@ namespace App\Repositories;
 use App\Entities\DatabaseResult;
 use App\Models\Model;
 use Config\Database;
+use Exception;
 use Exception\DuplicatedValueException;
 use Exception\IndexNotFoundException;
 
@@ -200,6 +201,7 @@ abstract class Repository implements RepositoryInterface
      * @param Model $model
      * @return Model The inserted model.
      * @throws DuplicatedValueException
+     * @throws Exception
      */
     public function save(Model $model): Model
     {
@@ -208,7 +210,8 @@ abstract class Repository implements RepositoryInterface
         /*+--------------------------------------------------------------------+
         * | Agrega comillas simples a cada uno de los valores de los atributos |
         * +--------------------------------------------------------------------+*/
-        $values = array_map(fn($value) => "'" . $value . "'" ?? "null", $values);
+        $values = array_filter($values, fn($value) => !is_null($value));
+        $values = array_map(fn($value) => "'" . $value . "'", $values);
 
         $columns = array_keys($values);
 
@@ -222,6 +225,7 @@ abstract class Repository implements RepositoryInterface
             if ($e->getCode() == 23000) {
                 throw new DuplicatedValueException($e->getMessage());
             }
+            throw new Exception($e->getMessage());
         }
 
         $lastId = $result->getLastInsertId();
